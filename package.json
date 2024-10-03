@@ -1,0 +1,48 @@
+{
+  "name": "@point-of-sale/webcam-barcode-scanner",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "browser": {
+      "import": "./dist/webcam-barcode-scanner.esm.js",
+      "require": "./dist/webcam-barcode-scanner.umd.js",
+      "script": "./dist/webcam-barcode-scanner.umd.js"
+    }
+  },
+  "module": "src/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NielsLeenheer/WebSerialBarcodeScanner.git"
+  },
+  "keywords": [
+    "serial",
+    "webcam",
+    "barcode",
+    "scanner"
+  ],
+  "author": "Niels Leenheer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/NielsLeenheer/WebSerialBarcodeScanner/issues"
+  },
+  "homepage": "https://github.com/NielsLeenheer/WebSerialBarcodeScanner#readme",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.1.0",
+    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-terser": "^0.4.1",
+    "@rollup/plugin-wasm": "^6.2.2",
+    "rollup": "^3.20.7"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@surma/rollup-plugin-off-main-thread": "^2.2.3",
+    "comlink": "^4.4.1",
+    "hull.js": "^1.0.6"
+  }
+}
