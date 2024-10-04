@@ -50,7 +50,7 @@ However, this library will actively look for new devices being connected. So if 
 To find out when a barcode scanner is connected you can listen for the `connected` event using the `addEventListener()` function.
 
     barcodeScanner.addEventListener('connected', device => {
-        console.log(`Connected to a device with vendorId: ${device.vendorId} and productId: ${device.productId}`);
+        console.log(`Connected to a webcam ${device.deviceId}`);
 
         /* Store device for reconnecting */
         lastUsedDevice = device;
@@ -59,21 +59,80 @@ To find out when a barcode scanner is connected you can listen for the `connecte
 The callback of the `connected` event is passed an object with the following properties:
 
 -   `type`<br>
-    Type of the connection that is used, in this case it is always `serial`.
--   `vendorId`<br>
-    In case of a USB barcode scanner, the USB vendor ID.
--   `productId`<br>
-    In case of a USB barcode scanner, the USB product ID.
+    Type of the connection that is used, in this case it is always `webcam`.
+-   `deviceId`<br>
+    The device id of the webcam.
 
-To find out when a barcode scanner is disconnected you can listen for the `disconnected` event using the `addEventListener()` function.
+To find out when the webcam is disconnected you can listen for the `disconnected` event using the `addEventListener()` function.
 
     barcodeScanner.addEventListener('disconnected', () => {
         console.log(`Disconnected`);
     });
 
-You can force the scanner to disconnect by calling the `disconnect()` function:
+You can force the webcam to disconnect by calling the `disconnect()` function:
 
     barcodeScanner.disconnect();
+
+
+## Configuration
+
+### Fallback worker support 
+
+By default this library will try to use the build-in barcode detector support in Chromium browsers. As a fallback it uses a WASM version of ZXing running in a worker. That means you have to provide the library with the correct path to the worker library:
+
+    const barcodeScanner = new WebcamBarcodeScanner({
+        workerPath: '/dist/webcam-barcode-scanner.worker.js'
+    });
+
+If you want to force the library to use WASM - which we would not advice - you can force the fallback:
+
+    const barcodeScanner = new WebcamBarcodeScanner({
+        workerPath: '/dist/webcam-barcode-scanner.worker.js',
+        useFallback: true
+    });
+
+### Beep on scan
+
+By default this library will beep on a succesful scan, to mimick the sound an actual barcode scanner would make. If you want to disable this, you can do so:
+
+    const barcodeScanner = new WebcamBarcodeScanner({
+        beepOnScan: false
+    });
+
+
+### Preview window
+
+This library will show a small preview overlay on top of the current webpage with a view of your webcam. This will allow you to easily position the barcode in the right spot. 
+
+You can configure the preview with the following options:
+
+- *enabled*: Turn the preview on or off
+- *mirrored*: Mirror the image in the preview, so that movement mirrors your own
+- *hud*: Paint a border around detected barcodes on the preview
+- *size*: Size of the preview in pixels
+- *position*: Position of the preview, for example: `top-left`, `bottom-left`, `top-right` and `bottom-right`.
+- *padding*: Space between the preview and the corner of the window
+- *radius*: Border radius of the preview
+- *zIndex*: Z-index to make sure it is on top of your own content
+
+For example:
+
+    const barcodeScanner = new WebcamBarcodeScanner({
+        preview: {
+			enabled: 		false
+        }
+    });
+
+Or:
+
+    const barcodeScanner = new WebcamBarcodeScanner({
+        preview: {
+			size: 			320,
+			position: 		'bottom-left',
+			padding: 		30,
+			radius: 		10
+        }
+    });
 
 
 ## Events
