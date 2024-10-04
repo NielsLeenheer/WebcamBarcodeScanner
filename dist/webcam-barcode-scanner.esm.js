@@ -427,7 +427,7 @@ class WebcamBarcodeScanner {
 		this.#cleanHistory();
 	}
 
-    async reconnect(previousDevice) {		
+    async reconnect(previousDevice) {
 		await this.#waitUntilReady();
 				
 		if (this.#internal.detector == null) {
@@ -453,6 +453,10 @@ class WebcamBarcodeScanner {
 			let tracks = stream.getVideoTracks();
 
 			for (let track of tracks) {
+				if (!track.getCapabilities) {
+					continue;
+				}
+
 				let capabilities = track.getCapabilities();
 
 				if (capabilities.facingMode) {
@@ -489,6 +493,10 @@ class WebcamBarcodeScanner {
 			let tracks = stream.getVideoTracks();
 
 			for (let track of tracks) {
+				if (!track.getCapabilities) {
+					continue;
+				}
+
 				let capabilities = track.getCapabilities();
 
 				if (capabilities.facingMode) {
@@ -692,12 +700,17 @@ class WebcamBarcodeScanner {
 
 		for (let device of devices) {
 			if (device.kind == 'videoinput') {
-				let capabilities = device.getCapabilities();
+				let location = 'front';
+
+				if (device.getCapabilities) {
+					let capabilities = device.getCapabilities();
+					location = !capabilities.facingMode || capabilities.facingMode.length == 0 || capabilities.facingMode[0] == 'user' ? 'front' : 'back';
+				}
 
 				this.#internal.devices.push({
 					label: 		device.label,
 					deviceId:	device.deviceId,
-					location: 	!capabilities.facingMode || capabilities.facingMode.length == 0 || capabilities.facingMode[0] == 'user' ? 'front' : 'back'
+					location
 				});
 			}
 		}
