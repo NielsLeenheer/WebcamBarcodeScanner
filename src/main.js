@@ -366,6 +366,8 @@ class WebcamBarcodeScanner {
 
     async #open(stream, deviceId) {
         this.#internal.video = document.createElement('video');
+		this.#internal.video.playsInline = true;
+		this.#internal.video.controls = false;
         this.#internal.video.width = this.#options.resolution.width;
         this.#internal.video.height = this.#options.resolution.height;
         this.#internal.video.srcObject = stream;
