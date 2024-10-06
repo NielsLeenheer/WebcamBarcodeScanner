@@ -415,9 +415,14 @@
                 audio:          new AudioContext(),
     			emitter:        new EventEmitter(),
                 detector:       null,
+    			width:			0,
+    			height:			0,
+    			orientation:	screen.orientation.angle === 0 ? 'normal' : 'rotated',
             };
 
     		this.#preview = {
+    			width:			0,
+    			height:			0,
     			container:		null,
     			hud:			null,
     			video:			null,
@@ -426,11 +431,16 @@
 
     		this.#state = {
     			playing:		false,
-    			mirrored:		false
+    			mirrored:		false,
+    			changing:		false
     		};
 
     		this.#setupDetectors();
     		this.#cleanHistory();
+
+    		screen.orientation.addEventListener("change", (event) => {
+    			this.#changeContainerOrientation();
+    		});
     	}
 
         async reconnect(previousDevice) {
@@ -608,15 +618,27 @@
 
     		worker.addEventListener('message', (e) => {
     			let buffer = document.createElement('canvas');
+    			let width;
+    			let height;
     			let context;
     					
     			this.#internal.detector = async (video) => {
 
+    				if (context) {
+    					/* Width and height changed, so we need to change the buffer size */
+
+    					if (width != video.videoWidth || height != video.videoHeight) {
+    						width = buffer.width = video.videoWidth;
+    						height = buffer.height = video.videoHeight;
+    						context.reset();
+    					}
+    				}
+
     				/* Create image buffer on the fly for getting the image data */
 
-    				if (!context) {
-    					buffer.height = video.videoHeight;
-    					buffer.width = video.videoWidth;
+    				else {
+    					width = buffer.width = video.videoWidth;
+    					height = buffer.height = video.videoHeight;
     					context = buffer.getContext('2d', { willReadFrequently: true });
     				}
 
@@ -627,8 +649,8 @@
     					let imageData;
 
     					try {
-    						context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-    						imageData = context.getImageData(0, 0, buffer.width, buffer.height);
+    						context.drawImage(video, 0, 0, width, height);
+    						imageData = context.getImageData(0, 0, width, height);
     					} catch (err) {
     						context.reset();
     						return [];
@@ -636,14 +658,14 @@
 
     					/* Convert image data to grayscale */
 
-    					const grayData = new Uint8Array(buffer.width * buffer.height);
+    					const grayData = new Uint8Array(width * height);
     					for (var i = 0, j = 0; i < imageData.data.length; i += 4, j++) {
     						grayData[j] = (imageData.data[i] * 66 + imageData.data[i + 1] * 129 + imageData.data[i + 2] * 25 + 4096) >> 8;
     					}
     			
     					/* Decode barcode */
 
-    					let barcode = await detector(buffer.width, buffer.height, grayData, {
+    					let barcode = await detector(width, height, grayData, {
     						includePolygon: this.#options.preview.enabled && this.#options.preview.hud
     					});
 
@@ -725,9 +747,39 @@
     	/* Open, close and change video stream */
 
         async #open(stream, deviceId) {
+
+    		/* Determine the size of the stream */
+
+    		let width;
+    		let height;
+
+    		for (let track of stream.getVideoTracks()) {
+    			let settings = track.getSettings();
+    			if (settings) {
+    				width = track.getSettings().width;
+    				height = track.getSettings().height;
+    			}
+    		}
+
+    		this.#internal.width = width;
+    		this.#internal.height = height;
+
+    		if (IS_IOS) {
+    			if (this.#internal.orientation === 'normal') {
+    				this.#internal.width = Math.min(width, height);
+    				this.#internal.height = Math.max(width, height);
+    			}
+    			else {
+    				this.#internal.width = Math.max(width, height);
+    				this.#internal.height = Math.min(width, height);
+    			}
+    		}
+
+    		/* Create video element */
+
             this.#internal.video = document.createElement('video');
-            this.#internal.video.width = this.#options.resolution.width;
-            this.#internal.video.height = this.#options.resolution.height;
+    		this.#internal.video.playsInline = true;
+    		this.#internal.video.controls = false;
             this.#internal.video.srcObject = stream;
 
             this.#internal.video.addEventListener('loadedmetadata', () => {
@@ -844,15 +896,28 @@
     	/* Video preview */
 
     	#createContainer() {
+
+    		/* Determine the size of our preview */
+
     		let width = this.#options.preview.size;
-    		let height = this.#options.resolution.height / this.#options.resolution.width * this.#options.preview.size;
+    		let height = this.#internal.height / this.#internal.width * this.#options.preview.size;
+    		
+    		if (this.#internal.width < this.#internal.height) {
+    			height = this.#options.preview.size;
+    			width = this.#internal.width / this.#internal.height * this.#options.preview.size;
+    		}
+
+    		this.#preview.width = width;
+    		this.#preview.height = height;
+
+    		/* Create container */
 
     		let container = document.createElement('div');
     		container.style.opacity = 0;
     		container.style.transition = 'opacity 0.4s';
     		container.style.position = 'fixed';
-    		container.style.width = `${width}px`;
-    		container.style.height = `${height}px`;
+    		container.style.width = `${this.#preview.width}px`;
+    		container.style.height = `${this.#preview.height}px`;
     		container.style.borderRadius = `${this.#options.preview.radius}px`;
     		container.style.overflow = 'hidden';
     		container.style.zIndex = this.#options.preview.zIndex;
@@ -881,10 +946,10 @@
 
     		if (this.#options.preview.hud) {
     			let hud = document.createElement('canvas');
-    			hud.width = this.#options.resolution.width;
-    			hud.height = this.#options.resolution.height;
-    			hud.style.width = `${width}px`;
-    			hud.style.height = `${height}px`;
+    			hud.width = this.#internal.width;
+    			hud.height = this.#internal.height;
+    			hud.style.width = `${this.#preview.width}px`;
+    			hud.style.height = `${this.#preview.height}px`;
     			hud.style.position = 'absolute';
     			hud.style.zIndex = 100;
     			container.appendChild(hud);
@@ -948,6 +1013,47 @@
     		}
     	}
 
+    	async #changeContainerOrientation() {
+    		if (!this.#preview.container) {
+    			return;
+    		}
+
+    		this.#state.changing = true;
+
+    		let orientation = screen.orientation.angle === 0 ? 'normal' : 'rotated';
+    		let [ previewWidth, previewHeight ] = [ this.#preview.width, this.#preview.height ];
+    		let [ videoWidth, videoHeight ] = [ this.#internal.width, this.#internal.height ];
+
+    		if (this.#internal.orientation != orientation) {
+    			[ previewWidth, previewHeight ] = [ previewHeight, previewWidth ];
+    			[ videoWidth, videoHeight ] = [ videoHeight, videoWidth ];
+    		}
+
+    		/* Update sizes of the container and its children */
+
+    		this.#preview.container.style.width = `${previewWidth}px`;
+    		this.#preview.container.style.height = `${previewHeight}px`;
+
+    		let hud = this.#preview.container.querySelector('canvas');
+    		if (hud) {
+    			hud.width = videoWidth;
+    			hud.height = videoHeight;
+    			hud.style.width = `${previewWidth}px`;
+    			hud.style.height = `${previewHeight}px`;
+    		}
+
+    		let preview = this.#preview.container.querySelector('video');
+    		if (preview) {
+    			preview.width = previewWidth;
+    			preview.height = previewHeight;
+    		}
+
+    		await new Promise((resolve) => setTimeout(resolve, 500));
+
+    		this.#clearHud();
+    		this.#state.changing = false;
+    	}
+
     	async #showContainer() {
     		await new Promise((resolve) => setTimeout(resolve, 50));
     		this.#preview.container.style.opacity = 1;
@@ -970,6 +1076,10 @@
     		this.#preview.video = null;
     	}
 
+    	#clearHud() {
+    		this.#preview.polygons.clear();
+    	}
+
     	#drawHud() {
     		/* Clean up old polygons */
 
@@ -985,29 +1095,35 @@
 
     		let polygons = this.#preview.polygons.values();
 
-    		this.#preview.hud.clearRect(0, 0, this.#options.resolution.width, this.#options.resolution.height);
-    		this.#preview.hud.strokeStyle = 'lime';
-    		this.#preview.hud.lineWidth = 8;
+    		let width = this.#preview.hud.canvas.width;
+    		let height = this.#preview.hud.canvas.height;
 
-    		for (let { polygon } of polygons) {			
-    			this.#preview.hud.beginPath();
+    		this.#preview.hud.clearRect(0, 0, width, height);
 
-    			if (this.#state.mirrored) {
-    				this.#preview.hud.moveTo(this.#options.resolution.width - polygon[0].x, polygon[0].y);
-    				for (let i = 1; i < polygon.length; i++) {
-    					this.#preview.hud.lineTo(this.#options.resolution.width - polygon[i].x, polygon[i].y);
+    		if (!this.#state.changing) {
+    			this.#preview.hud.strokeStyle = 'lime';
+    			this.#preview.hud.lineWidth = 8;
+
+    			for (let { polygon } of polygons) {		
+    				this.#preview.hud.beginPath();
+
+    				if (this.#state.mirrored) {
+    					this.#preview.hud.moveTo(width - polygon[0].x, polygon[0].y);
+    					for (let i = 1; i < polygon.length; i++) {
+    						this.#preview.hud.lineTo(width - polygon[i].x, polygon[i].y);
+    					}
+    					this.#preview.hud.lineTo(width - polygon[0].x, polygon[0].y);
+    				} else {
+    					this.#preview.hud.moveTo(polygon[0].x, polygon[0].y);
+    					for (let i = 1; i < polygon.length; i++) {
+    						this.#preview.hud.lineTo(polygon[i].x, polygon[i].y);
+    					}
+    					this.#preview.hud.lineTo(polygon[0].x, polygon[0].y);
     				}
-    				this.#preview.hud.lineTo(this.#options.resolution.width - polygon[0].x, polygon[0].y);
-    			} else {
-    				this.#preview.hud.moveTo(polygon[0].x, polygon[0].y);
-    				for (let i = 1; i < polygon.length; i++) {
-    					this.#preview.hud.lineTo(polygon[i].x, polygon[i].y);
-    				}
-    				this.#preview.hud.lineTo(polygon[0].x, polygon[0].y);
+
+    				this.#preview.hud.closePath();
+    				this.#preview.hud.stroke();
     			}
-
-    			this.#preview.hud.closePath();
-    			this.#preview.hud.stroke();
     		}
 
     		if (this.#preview.container) {
@@ -1017,8 +1133,10 @@
 
     	async #createPreview(stream) {
     		let preview = document.createElement('video');
-    		preview.width = this.#options.preview.size;
-    		preview.height = this.#options.resolution.height / this.#options.resolution.width * this.#options.preview.size;
+    		preview.playsInline = true;
+    		preview.controls = false;
+    		preview.width = this.#preview.container.clientWidth;
+    		preview.height = this.#preview.container.clientHeight;
             preview.srcObject = stream;
 
     		preview.style.position = 'absolute';
@@ -1049,6 +1167,8 @@
     	}
 
     	async #snapshotPreview(preview) {
+    		this.#state.changing = true;
+
     		/* Create a canvas on the exact same spot as the preview video */
 
     		let canvas = document.createElement('canvas');
@@ -1084,6 +1204,8 @@
     		await new Promise((resolve) => canvas.ontransitionend = resolve);
 
     		canvas.remove();
+
+    		this.#state.changing = false;
     	}
 
     	async #destroyPreview(preview) {
