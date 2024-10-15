@@ -1,0 +1,97 @@
+<meta charset="UTF-8">
+
+<script src="../dist/webcam-barcode-scanner.umd.js"></script>
+
+<script>
+
+    let barcodeScanner;
+
+    function connect() {
+        barcodeScanner = new WebcamBarcodeScanner({ 
+            preview: {
+                hud: false
+            }
+        });
+
+        barcodeScanner.addEventListener('connected', device => connected(device));
+        barcodeScanner.addEventListener('disconnected', device => disconnected(device));
+        barcodeScanner.addEventListener('barcode', data => barcode(data));
+        barcodeScanner.connect();
+    }
+
+    function disconnect() {
+        barcodeScanner.disconnect();
+
+        document.getElementById('barcode').innerHTML = '';
+        document.getElementById('symbology').innerHTML = '';
+    }
+    
+
+
+    function connected(device) {
+        console.log('Connected to', device);
+
+        document.getElementById('connect').hidden = true;
+        document.getElementById('disconnect').hidden = false;
+    }
+
+    function disconnected() {
+        document.getElementById('connect').hidden = false;
+        document.getElementById('disconnect').hidden = true;
+    }
+
+    function barcode(data) {
+        console.log('Barcode:', data);
+
+        let barcode = document.getElementById('barcode');
+        barcode.innerHTML = data.value;
+
+        if (data.symbology) {
+            let symbology = document.getElementById('symbology');
+            symbology.innerHTML = data.symbology;
+        }
+    }
+
+</script>
+
+<style>
+
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    header {
+        display: flex;
+        background: #eee;
+        padding: 0.6em 1em;
+    }
+    header * {
+        margin-right: 1em;
+    }
+
+    main {
+        padding: 1em;
+    }
+
+    #barcode {
+        font-family: monospace;
+        font-size: 4em;    
+    }
+
+    #symbology {
+        font-family: monospace;
+    }
+
+
+</style>
+
+<header>
+    <button id="connect" onclick="connect()">Connect</button>
+    <button id="disconnect" onclick="disconnect()" hidden>Disconnect</button>
+</header>
+
+<main>
+    <div id="barcode"></div>
+    <div id="symbology"></div>
+</main>
