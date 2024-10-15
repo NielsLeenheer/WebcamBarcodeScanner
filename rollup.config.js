@@ -38,7 +38,7 @@ export default [
 		input: 'src/worker.js',
 		output: { 
 			file: 'dist/webcam-barcode-scanner.worker.js', 
-			sourcemap: true,
+			sourcemap: false,
 			format: 'amd' 
 		},
 		plugins: [
