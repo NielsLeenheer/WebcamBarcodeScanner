@@ -48,7 +48,7 @@ When you create the `WebcamBarcodeScanner` object you can specify a number of op
 
 ### Fallback worker support 
 
-By default this library will try to use the build-in barcode detector support in Chromium browsers. As a fallback it uses a WASM version of ZXing running in a worker. That means you have to provide the library with the correct path to the worker library:
+By default this library will try to use the build-in barcode detector support in Chromium browsers. As a fallback it uses a WASM version of ZXing running in a worker. It will try to load the worker from the same directory as the UMD or ESM module. But if you use a bundler that will fail and the barcode detection will run in the main thread. That is something you want to prevent by providing the library with the correct path to the worker library:
 
 ```js
 const barcodeScanner = new WebcamBarcodeScanner({
@@ -56,14 +56,31 @@ const barcodeScanner = new WebcamBarcodeScanner({
 });
 ```
 
-If you want to force the library to use WASM - which we would not advice - you can force the fallback:
+Similarly you configure the path to the binary WASM file as well: 
 
 ```js
 const barcodeScanner = new WebcamBarcodeScanner({
     workerPath: '/dist/webcam-barcode-scanner.worker.js',
+    binaryPath: '/dist/webcam-barcode-scanner.wasm'
+});
+```
+
+If you want to force the library to use WASM - which we would not advice - you can force the fallback:
+
+```js
+const barcodeScanner = new WebcamBarcodeScanner({
     useFallback: true
 });
 ```
+
+If you want to force the library to use the main thread instead of a worker - again, which we would not advice - you can force this:
+
+```js
+const barcodeScanner = new WebcamBarcodeScanner({
+    useWorker: false
+});
+```
+
 
 ### Beep on scan
 

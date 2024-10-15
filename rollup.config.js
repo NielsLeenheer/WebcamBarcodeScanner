@@ -2,7 +2,6 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
 import omt from "@surma/rollup-plugin-off-main-thread";
-import { wasm } from '@rollup/plugin-wasm';
 
 export default [
 	// browser-friendly UMD build
@@ -15,9 +14,9 @@ export default [
 			format: 'umd'
 		},
 		plugins: [
-			resolve(), 
+			resolve({ browser: true }), 
 			commonjs(),
-            // terser() 
+            terser() 
 		]
 	},
 
@@ -29,9 +28,9 @@ export default [
 			format: 'es' 
 		},
 		plugins: [
-			resolve(),
+			resolve({ browser: true }),
 			commonjs(),
-            // terser()
+            terser()
 		]
 	},
 
@@ -39,14 +38,13 @@ export default [
 		input: 'src/worker.js',
 		output: { 
 			file: 'dist/webcam-barcode-scanner.worker.js', 
-			// sourcemap: true,
+			sourcemap: true,
 			format: 'amd' 
 		},
 		plugins: [
 			resolve(),
 			commonjs(),
             terser(),
-			// wasm({ fileName: 'webcam-barcode-scanner.worker.wasm' }),
 			omt()
 		]
 	}

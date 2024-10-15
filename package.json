@@ -30,12 +30,12 @@
     "@rollup/plugin-commonjs": "^24.1.0",
     "@rollup/plugin-node-resolve": "^15.0.2",
     "@rollup/plugin-terser": "^0.4.1",
-    "@rollup/plugin-wasm": "^6.2.2",
     "rollup": "^3.20.7"
   },
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w"
+    "build": "rollup -c && npm run copy",
+    "dev": "rollup -c -w",
+    "copy": "cp ./node_modules/zxing-wasm/dist/reader/zxing_reader.wasm ./dist/webcam-barcode-scanner.wasm"
   },
   "files": [
     "dist"
@@ -43,6 +43,6 @@
   "dependencies": {
     "@surma/rollup-plugin-off-main-thread": "^2.2.3",
     "comlink": "^4.4.1",
-    "hull.js": "^1.0.6"
+    "zxing-wasm": "^1.2.15"
   }
 }

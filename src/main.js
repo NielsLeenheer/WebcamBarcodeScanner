@@ -1,5 +1,6 @@
 import EventEmitter from './event-emitter.js';
 import * as Comlink from 'comlink';
+import { setZXingModuleOverrides, readBarcodesFromImageData } from "zxing-wasm/reader";
 
 const TIME_BETWEEN_SCANS = 2 * 1000;
 const WAIT_FOR_CAMERA = 2000;
@@ -23,9 +24,11 @@ class WebcamBarcodeScanner {
 			debug: 			false,
 			allowTypes: 	null,
 			useFallback: 	false,
+			useWorker: 		true,
 			beepOnScan: 	true,
 			resolution: 	{},
-			workerPath: 	'webcam-barcode-scanner.worker.js',
+			workerPath: 	null,
+			binaryPath:		null,
 			preview: 		{},
 		}, options);
 
@@ -74,6 +77,30 @@ class WebcamBarcodeScanner {
 			mirrored:		false,
 			changing:		false
 		};
+
+
+		/* Determine the path to the worker script and WASM binary */
+
+		const currentPath = typeof import.meta !== 'undefined' ? 
+			import.meta.url : document.currentScript.src;
+
+		
+		if (this.#options.workerPath === null) {
+			this.#options.workerPath = 'webcam-barcode-scanner.worker.js';
+
+			if (currentPath) {
+				this.#options.workerPath = currentPath
+					.replace(/webcam-barcode-scanner(\..*)?\.js/, this.#options.workerPath);
+			}
+		}
+
+		if (this.#options.binaryPath === null) {
+			this.#options.binaryPath = this.#options.workerPath
+				.replace('webcam-barcode-scanner.worker.js', 'webcam-barcode-scanner.wasm')
+		}
+
+
+		/* Initialize the barcode scanner */
 
 		this.#setupDetectors();
 		this.#cleanHistory();
@@ -247,22 +274,51 @@ class WebcamBarcodeScanner {
 		}
 	}
 
-	#setupFallbackDetector() {
+	async #setupFallbackDetector() {
+		let workerFailed = false;
+
+		if (this.#options.useWorker) {
 		const worker = new Worker(this.#options.workerPath, {
 			type: "module"
 		});
 
-		const detector = Comlink.wrap(worker);
+			worker.addEventListener('error', (e) => {
+				console.log('Failed to create worker, using main thread for barcode detection, is your workerPath set correctly?');
+				workerFailed = true;
+			});
 
-		/* We use the first message from the worker to initialize the detector */
+			let link = Comlink.wrap(worker);
 
-		worker.addEventListener('message', (e) => {
+			await link.initialize({
+				binaryPath: this.#options.binaryPath
+			});
+
+			this.#runFallbackDetector(link.decodeBarcode);
+		}
+
+		if (!this.#options.useWorker || workerFailed) {
+			setZXingModuleOverrides({
+				locateFile: (path, prefix) => {
+				  if (path.endsWith(".wasm")) {
+					return this.#options.binaryPath;
+				  }
+
+				  return prefix + path;
+				},
+			});
+
+			this.#runFallbackDetector(readBarcodesFromImageData);
+		}
+	}
+
+	#runFallbackDetector(detector) {
 			let buffer = document.createElement('canvas');
 			let width;
 			let height;
 			let context;
 					
 			this.#internal.detector = async (video) => {
+			let result = [];
 
 				if (context) {
 					/* Width and height changed, so we need to change the buffer size */
@@ -296,55 +352,65 @@ class WebcamBarcodeScanner {
 						return [];
 					}
 
-					/* Convert image data to grayscale */
+				/* Detect barcodes */
 
-					const grayData = new Uint8Array(width * height);
-					for (var i = 0, j = 0; i < imageData.data.length; i += 4, j++) {
-						grayData[j] = (imageData.data[i] * 66 + imageData.data[i + 1] * 129 + imageData.data[i + 2] * 25 + 4096) >> 8;
-					}
-			
-					/* Decode barcode */
+				let barcodes = await detector(imageData, {
+					maxNumberOfSymbols: 1
+				});
 
-					let barcode = await detector(width, height, grayData, {
-						includePolygon: this.#options.preview.enabled && this.#options.preview.hud
-					});
 
-					if (barcode) {
-						let symbology = null;
-						
-						switch (barcode.symbol) {
-							case 'EAN-8':   	symbology = 'ean8'; break;
-							case 'EAN-13':  	symbology = 'ean13'; break;
-							case 'UPC-A':   	symbology = 'upca'; break;
-							case 'UPC-E':   	symbology = 'upce'; break;
-							case 'CODE-39': 	symbology = 'code39'; break;
-							case 'CODE-93': 	symbology = 'code93'; break;
-							case 'CODE-128': 	symbology = 'code128'; break;
-							case 'Codabar': 	symbology = 'codabar'; break;
-							case 'I2/5': 		symbology = 'interleaved-2-of-5'; break;
-							case 'DataBar':   	symbology = 'gs1-databar-limited'; break;
-							case 'DataBar-Exp': symbology = 'gs1-databar-expanded'; break;
-							case 'QR-Code': 	symbology = 'qr-code'; break;
-							case 'PDF417': 		symbology = 'pdf417'; break;
+				if (barcodes && barcodes.length) {
+					for(let barcode of barcodes) {
+						if (barcode.error) {
+							continue;
 						}
 
-						return [ {
-							value: barcode.data, 
+						let symbology = null;
+						
+						switch (barcode.format) {
+							case 'Aztec':   symbology = 'aztec-code'; break;
+							case 'Codabar': symbology = 'codabar'; break;
+							case 'Code39': symbology = 'code39'; break;
+							case 'Code93': symbology = 'code93'; break;
+							case 'Code128': symbology = 'code128'; break;
+							case 'DataBar': symbology = 'gs1-databar'; break;
+							case 'DataBarExpanded': symbology = 'gs1-databar-expanded'; break;
+							case 'DataMatrix': symbology = 'data-matrix'; break;
+							case 'EAN-8':   symbology = 'ean8'; break;
+							case 'EAN-13':  symbology = 'ean13'; break;
+							case 'ITF': symbology = 'interleaved-2-of-5'; break;
+							case 'MaxiCode': symbology = 'maxicode'; break;
+							case 'QRCode': symbology = 'qr-code'; break;
+							case 'PDF417': symbology = 'pdf417'; break;
+							case 'UPCA':   symbology = 'upca'; break;
+							case 'UPCE':   symbology = 'upce'; break;
+							case 'MicroQRCode': symbology = 'qr-code-micro'; break;
+							case 'RMQRCode': symbology = 'qr-code-micro'; break;
+							case 'DXFilmEdge': symbology = 'dx-film-edge'; break;
+						}
+
+						if (symbology) {
+							result.push({
+								value: barcode.text,
 							symbology,
-							polygon: barcode.polygon,
+								polygon: [
+									{ x: barcode.position.topLeft.x, y: barcode.position.topLeft.y },
+									{ x: barcode.position.topRight.x, y: barcode.position.topRight.y },
+									{ x: barcode.position.bottomRight.x, y: barcode.position.bottomRight.y },
+									{ x: barcode.position.bottomLeft.x, y: barcode.position.bottomLeft.y }
+								],
 							raw: barcode
-						} ];
+							});
+						}
+					}					
 					}
 				} catch (err) {					
 					console.error(err);
 					throw err;
 				}
 
-				return [];
-			};	
-		}, { 
-			once: true 
-		});
+			return result;
+		}
 	}
 
 	async #waitUntilReady() {
