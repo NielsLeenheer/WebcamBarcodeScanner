@@ -284,22 +284,36 @@ class WebcamBarcodeScanner {
 		let workerFailed = false;
 
 		if (this.#options.useWorker) {
-			const worker = new Worker(this.#options.workerPath, {
-				type: "module"
-			});
 
-			worker.addEventListener('error', (e) => {
-				console.log('Failed to create worker, using main thread for barcode detection, is your workerPath set correctly?');
+			/* Work around potential origin issues by fetching the worker script and creating a blob URL */
+
+			let response = await fetch(this.#options.workerPath);
+			let script = URL.createObjectURL(new Blob([ await response.text() ], { type: 'application/javascript' }));
+
+			/* Create the worker */
+
+			try {
+				const worker = new Worker(script, {
+					type: "module"
+				});
+
+				worker.addEventListener('error', (e) => {
+					console.log('Failed to create worker, using main thread for barcode detection, is your workerPath set correctly?');
+					workerFailed = true;
+				});
+
+				let link = Comlink.wrap(worker);
+
+				await link.initialize({
+					binaryPath: this.#options.binaryPath
+				});
+
+				this.#runFallbackDetector(link.decodeBarcode);
+			}
+			catch (e) {
+				console.log('Failed to create worker, using main thread for barcode detection, is your workerPath set correctly?', e);
 				workerFailed = true;
-			});
-
-			let link = Comlink.wrap(worker);
-
-			await link.initialize({
-				binaryPath: this.#options.binaryPath
-			});
-
-			this.#runFallbackDetector(link.decodeBarcode);
+			}
 		}
 
 		if (!this.#options.useWorker || workerFailed) {
