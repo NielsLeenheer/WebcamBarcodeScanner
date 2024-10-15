@@ -1,6 +1,11 @@
 import EventEmitter from './event-emitter.js';
 import * as Comlink from 'comlink';
 import { setZXingModuleOverrides, readBarcodesFromImageData } from "zxing-wasm/reader";
+import '@interactjs/actions/drag';
+import '@interactjs/auto-start';
+import interact from '@interactjs/interact';
+
+
 
 const TIME_BETWEEN_SCANS = 2 * 1000;
 const WAIT_FOR_CAMERA = 2000;
@@ -39,6 +44,7 @@ class WebcamBarcodeScanner {
 
 		this.#options.preview = Object.assign({
 			enabled: 		true,
+			draggable:		false,
 			mirrored: 		true,
 			hud: 			true,
 			size: 			240,
@@ -278,9 +284,9 @@ class WebcamBarcodeScanner {
 		let workerFailed = false;
 
 		if (this.#options.useWorker) {
-		const worker = new Worker(this.#options.workerPath, {
-			type: "module"
-		});
+			const worker = new Worker(this.#options.workerPath, {
+				type: "module"
+			});
 
 			worker.addEventListener('error', (e) => {
 				console.log('Failed to create worker, using main thread for barcode detection, is your workerPath set correctly?');
@@ -312,45 +318,45 @@ class WebcamBarcodeScanner {
 	}
 
 	#runFallbackDetector(detector) {
-			let buffer = document.createElement('canvas');
-			let width;
-			let height;
-			let context;
-					
-			this.#internal.detector = async (video) => {
+		let buffer = document.createElement('canvas');
+		let width;
+		let height;
+		let context;
+				
+		this.#internal.detector = async (video) => {
 			let result = [];
 
-				if (context) {
-					/* Width and height changed, so we need to change the buffer size */
+			if (context) {
+				/* Width and height changed, so we need to change the buffer size */
 
-					if (width != video.videoWidth || height != video.videoHeight) {
-						width = buffer.width = video.videoWidth;
-						height = buffer.height = video.videoHeight;
-						context.reset();
-					}
-				}
-
-				/* Create image buffer on the fly for getting the image data */
-
-				else {
+				if (width != video.videoWidth || height != video.videoHeight) {
 					width = buffer.width = video.videoWidth;
 					height = buffer.height = video.videoHeight;
-					context = buffer.getContext('2d', { willReadFrequently: true });
+					context.reset();
 				}
+			}
+
+			/* Create image buffer on the fly for getting the image data */
+
+			else {
+				width = buffer.width = video.videoWidth;
+				height = buffer.height = video.videoHeight;
+				context = buffer.getContext('2d', { willReadFrequently: true });
+			}
+
+			try {
+
+				/* Draw video frame to buffer */
+
+				let imageData;
 
 				try {
-
-					/* Draw video frame to buffer */
-
-					let imageData;
-
-					try {
-						context.drawImage(video, 0, 0, width, height);
-						imageData = context.getImageData(0, 0, width, height);
-					} catch (err) {
-						context.reset();
-						return [];
-					}
+					context.drawImage(video, 0, 0, width, height);
+					imageData = context.getImageData(0, 0, width, height);
+				} catch (err) {
+					context.reset();
+					return [];
+				}
 
 				/* Detect barcodes */
 
@@ -366,7 +372,7 @@ class WebcamBarcodeScanner {
 						}
 
 						let symbology = null;
-						
+
 						switch (barcode.format) {
 							case 'Aztec':   symbology = 'aztec-code'; break;
 							case 'Codabar': symbology = 'codabar'; break;
@@ -392,22 +398,22 @@ class WebcamBarcodeScanner {
 						if (symbology) {
 							result.push({
 								value: barcode.text,
-							symbology,
+								symbology,
 								polygon: [
 									{ x: barcode.position.topLeft.x, y: barcode.position.topLeft.y },
 									{ x: barcode.position.topRight.x, y: barcode.position.topRight.y },
 									{ x: barcode.position.bottomRight.x, y: barcode.position.bottomRight.y },
 									{ x: barcode.position.bottomLeft.x, y: barcode.position.bottomLeft.y }
 								],
-							raw: barcode
+								raw: barcode
 							});
 						}
 					}					
-					}
-				} catch (err) {					
-					console.error(err);
-					throw err;
 				}
+			} catch (err) {					
+				console.error(err);
+				throw err;
+			}
 
 			return result;
 		}
@@ -619,6 +625,7 @@ class WebcamBarcodeScanner {
 		/* Create container */
 
 		let container = document.createElement('div');
+		container.classList.add('webcam-barcode-scanner-preview');
 		container.style.opacity = 0;
 		container.style.transition = 'opacity 0.4s';
 		container.style.position = 'fixed';
@@ -629,23 +636,91 @@ class WebcamBarcodeScanner {
 		container.style.zIndex = this.#options.preview.zIndex;
 		container.style.backgroundColor = 'black';
 
+		let padding = typeof this.#options.preview.padding !== 'number' ? this.#options.preview.padding : {
+			top: this.#options.preview.padding,
+			right: this.#options.preview.padding,
+			bottom: this.#options.preview.padding,
+			left: this.#options.preview.padding
+		};
+
 		switch (this.#options.preview.position) {
 			case 'top-left':
-				container.style.top = `${this.#options.preview.padding}px`;
-				container.style.left = `${this.#options.preview.padding}px`;
+				container.style.top = `${padding.top}px`;
+				container.style.left = `${padding.left}px`;
 				break;
 			case 'top-right':
-				container.style.top = `${this.#options.preview.padding}px`;
-				container.style.right = `${this.#options.preview.padding}px`;
+				container.style.top = `${padding.top}px`;
+				container.style.right = `${padding.right}px`;
 				break;
 			case 'bottom-left':
-				container.style.bottom = `${this.#options.preview.padding}px`;
-				container.style.left = `${this.#options.preview.padding}px`;
+				container.style.bottom = `${padding.bottom}px`;
+				container.style.left = `${padding.left}px`;
 				break;
 			case 'bottom-right':
-				container.style.bottom = `${this.#options.preview.padding}px`;
-				container.style.right = `${this.#options.preview.padding}px`;
+				container.style.bottom = `${padding.bottom}px`;
+				container.style.right = `${padding.right}px`;
 				break;
+		}
+
+		/* Make the preview draggable */
+		
+		if (this.#options.preview.draggable) {
+			let position = { x: 0, y: 0 }
+			let top, left, bottom, right;
+			let x, y;
+
+			let move = (event) => {
+				position.x += event.dx
+				position.y += event.dy
+
+				event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
+			};
+
+			let end = async (event) => {
+				let horizontal = event.pageX < window.innerWidth >> 1 ? 'left' : 'right';
+				let vertical = event.pageY < window.innerHeight >> 1 ? 'top' : 'bottom';
+
+				top = left = bottom = right = 'auto';
+
+				if (horizontal == 'left') {
+					left = `${padding.left}px`;
+					x = padding.left;
+				} else {
+					right = `${padding.right}px`;
+					x = window.innerWidth - event.target.clientWidth - padding.right;
+				}
+
+				if (vertical == 'top') {
+					top = `${padding.top}px`;
+					y = padding.top;
+				} else {
+					bottom = `${padding.bottom}px`;
+					y = window.innerHeight - event.target.clientHeight - padding.bottom;
+				}
+
+				/* Animate the preview to its new location */
+
+				let keyframes = [ { transform: `translate(${x - event.target.offsetLeft}px,${y - event.target.offsetTop}px` } ];
+				let animation = event.target.animate(keyframes, {
+					duration: 150,
+				});
+
+				await animation.finished;
+
+				/* Swap transform for inset */
+
+				container.style.inset = `${top} ${right} ${bottom} ${left}`;
+				container.style.transform = '';
+
+				/* Reset position */
+
+				position.x = 0;
+				position.y = 0;
+			};
+
+			interact('.webcam-barcode-scanner-preview').draggable({
+				listeners: { move, end }
+			});
 		}
 
 		/* Create head up display */
@@ -658,6 +733,7 @@ class WebcamBarcodeScanner {
 			hud.style.height = `${this.#preview.height}px`;
 			hud.style.position = 'absolute';
 			hud.style.zIndex = 100;
+			hud.style.pointerEvents = 'none';
 			container.appendChild(hud);
 
 			this.#preview.hud = hud.getContext('2d');

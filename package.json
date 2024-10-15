@@ -41,8 +41,14 @@
     "dist"
   ],
   "dependencies": {
+    "@interactjs/actions": "^1.10.27",
+    "@interactjs/auto-start": "^1.10.27",
+    "@interactjs/dev-tools": "^1.10.27",
+    "@interactjs/interact": "^1.10.27",
+    "@interactjs/modifiers": "^1.10.27",
     "@surma/rollup-plugin-off-main-thread": "^2.2.3",
     "comlink": "^4.4.1",
+    "interactjs": "^1.10.27",
     "zxing-wasm": "^1.2.15"
   }
 }

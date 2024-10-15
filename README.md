@@ -100,6 +100,8 @@ You can configure the preview with the following options:
 
 - `enabled`<br> 
     Turn the preview on or off
+- `draggable`<br>
+    Allow the preview to be dragged to a different corner, disabled by default
 - `mirrored`<br>
     Mirror the image in the preview, so that movement mirrors your own
 - `hud`<br> 
@@ -109,7 +111,7 @@ You can configure the preview with the following options:
 - `position`<br>
     Position of the preview, for example: `top-left`, `bottom-left`, `top-right` and `bottom-right`.
 - `padding`<br>
-    Space between the preview and the corner of the window
+    Space between the preview and the corner of the window, either a number, or an object with the properties: `top`, `right`, `bottom` and `left` 
 - `radius`<br>
     Border radius of the preview
 - `zIndex`<br>
@@ -130,9 +132,24 @@ Or:
 ```js
 const barcodeScanner = new WebcamBarcodeScanner({
     preview: {
+        draggable: true
+    }
+});
+```
+
+Or:
+
+```js
+const barcodeScanner = new WebcamBarcodeScanner({
+    preview: {
         size: 		320,
         position: 	'bottom-left',
-        padding: 	30,
+        padding: 	{
+            top:        100,
+            left:       20,
+            right:      20,
+            bottom:     20
+        },
         radius: 	10
     }
 });
