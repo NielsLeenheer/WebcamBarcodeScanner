@@ -106,6 +106,13 @@ class WebcamBarcodeScanner {
 		}
 
 
+		/* Unmute the audio context */
+
+		if (this.#internal.audio.state === 'suspended') {
+			this.#internal.audio.resume();
+		}
+
+
 		/* Initialize the barcode scanner */
 
 		this.#setupDetectors();
