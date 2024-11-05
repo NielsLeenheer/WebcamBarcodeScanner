@@ -1,4 +1,6 @@
 import EventEmitter from './event-emitter.js';
+import { GS1 } from '@point-of-sale/barcode-parser';
+
 import * as Comlink from 'comlink';
 import { setZXingModuleOverrides, readBarcodesFromImageData } from "zxing-wasm/reader";
 import '@interactjs/actions/drag';
@@ -1102,18 +1104,27 @@ class WebcamBarcodeScanner {
 			this.#beep();
 		}
 
-		/* Emit the barcode */
+		/* Prepare the result */
 
-		let data = {
+		let result = {
 			value: 		barcode.value,
 			symbology: 	barcode.symbology
 		}
 
+		/* Decode GS1 data */
+
+		let parsed = GS1.parse(result);
+		if (parsed) {
+			result.data = parsed;
+		}
+		
 		if (this.#options.debug) {
-			data.raw = barcode.raw;
+			result.debug = barcode;
 		}
 
-		this.#internal.emitter.emit('barcode', data);
+		/* Emit the result */
+
+		this.#internal.emitter.emit('barcode', result);
     }
 
 	#cleanHistory() {
