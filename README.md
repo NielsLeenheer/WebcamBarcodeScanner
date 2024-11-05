@@ -46,6 +46,19 @@ const barcodeScanner = new WebcamBarcodeScanner();
 
 When you create the `WebcamBarcodeScanner` object you can specify a number of options to help with the library with connecting to the device. 
 
+### Symbologies
+
+By default this library will return barcodes of every symbology. However if you want to use this library in a specific environment, such as retail, you can limit this library to only allow symbologies that are used in retail, for example: 
+
+```js
+const barcodeScanner = new WebcamBarcodeScanner({
+    allowedSymbologies: [ 'ean13', 'ean8', 'upca', 'upce', 'qr-code' ]
+});
+```
+
+This will allow all EAN and UPC barcodes. But also QR-codes because the retail industry is moving to the QR code based GS Digital Links in the coming years. These digital links contain an URL and can be used by consumers to read more about the product they are buying or have bought. But it also includes the Global Trade Identification Number (GTIN) that is also used by EAN and UPC barcodes. 
+
+
 ### Fallback worker support 
 
 By default this library will try to use the build-in barcode detector support in Chromium browsers. As a fallback it uses a WASM version of ZXing running in a worker. It will try to load the worker from the same directory as the UMD or ESM module. But if you use a bundler that will fail and the barcode detection will run in the main thread. That is something you want to prevent by providing the library with the correct path to the worker library:
@@ -80,7 +93,6 @@ const barcodeScanner = new WebcamBarcodeScanner({
     useWorker: false
 });
 ```
-
 
 ### Beep on scan
 

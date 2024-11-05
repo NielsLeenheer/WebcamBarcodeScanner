@@ -27,7 +27,7 @@ class WebcamBarcodeScanner {
     constructor(options) {
 		this.#options = Object.assign({
 			debug: 			false,
-			allowTypes: 	null,
+			allowedSymbologies: [],
 			useFallback: 	false,
 			useWorker: 		true,
 			beepOnScan: 	true,
@@ -1092,7 +1092,7 @@ class WebcamBarcodeScanner {
 
 		/* If configured, only allow certain types of barcodes */
 
-		if (this.#options.allowTypes && !this.#options.allowTypes.includes(barcode.symbology)) {
+		if (this.#options.allowedSymbologies.length && !this.#options.allowedSymbologies.includes(barcode.symbology)) {
 			return;
 		}
 
