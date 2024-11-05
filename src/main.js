@@ -1108,7 +1108,12 @@ class WebcamBarcodeScanner {
 
 		let result = {
 			value: 		barcode.value,
-			symbology: 	barcode.symbology
+			symbology: 	barcode.symbology,
+			bytes: 		[ new Uint8Array(barcode.value.split('').map(c => c.charCodeAt(0))) ],
+		}
+
+		if (barcode.raw?.symbologyIdentifier) {
+			result.aim = barcode.raw.symbologyIdentifier;
 		}
 
 		/* Decode GS1 data */
