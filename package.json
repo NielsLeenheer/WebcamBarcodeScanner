@@ -1,6 +1,6 @@
 {
   "name": "@point-of-sale/webcam-barcode-scanner",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "type": "module",
   "exports": {
     "browser": {
