@@ -1033,9 +1033,11 @@ class WebcamBarcodeScanner {
 
 		setInterval(() => {
 			if (this.#stats.scans > 0) {
+				if (this.#options.debug) {
 				console.log(
-					// `Scanned ${this.#stats.scans} barcodes in ${Date.now() - this.#stats.time}ms (average ${this.#stats.scans / (Date.now() - this.#stats.time) * 1000} scans/s`
+						`Scanned ${this.#stats.scans} barcodes in ${Date.now() - this.#stats.time}ms (average ${this.#stats.scans / (Date.now() - this.#stats.time) * 1000} scans/s`
 				)
+				}
 
 				this.#stats.time = Date.now();
 				this.#stats.scans = 0;
