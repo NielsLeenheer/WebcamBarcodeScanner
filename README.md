@@ -247,7 +247,57 @@ The callback is passed an object with the following properties:
 
 -   `value`<br>
     The value of the barcode as a string
+-   `data`<br>
+    If the barcode contains GS1 data, such as the Global Trade Identification Number (GTIN) the data will be parsed into elements.
+-   `aim`<br>
+    Optionally, the AIM Code ID, which is a 3 character ISO/IEC identifier and gives information about the symbology of the barcode which was scanned. The AIM Code ID will typically only be available when fallback mode is used, as the build-in barcode scanner functionality does not provide this data.
+-   `symbology`<br>
+    Optionally a library specific identifier of the symbology. 
+-   `bytes`<br>
+    The raw bytes we've received from the scanner. This propery is an array containing one or more `Uint8Array`'s.
 
+#### Parsed GS1 data
+
+The `data` property is optional, but if GS1 data is detected, it will contain an object with the following properties:
+
+-   `gtin`<br>
+    Optionally, if the GS1 elements define a GTIN, it will be listed here for quick reference.
+-   `elements`<br>
+    An array of all the GS1 elements that the barcode contains. Each element is an object with the folowing properties; `ai`: the appication identifier, `label`: a human readable label and `value`: the value of the element.
+
+#### Symbologies
+
+The `symbology` property can be any of the following common values for 1D barcodes:
+
+`ean8`, `ean13`, `upca`, `upce`, `code39`, `code93`, `code128`, `codabar`, `interleaved-2-of-5`, `gs1-databar-omni`, `gs1-databar-expanded`
+
+Or these 2D barcodes:
+
+`qr-code`, `qr-code-micro`, `data-matrix`, `maxicode`, `aztec-code`, `pdf417`
+
+#### Example
+
+A typical EAN 13 barcode would look like:
+
+```js
+{
+    value: "3046920029759",
+    symbology: "ean13",
+    aim: "]E0",
+    data: {
+        gtin: "03046920029759",
+        elements: [{
+            ai: "01",
+            label: "GTIN",
+            value: "03046920029759"
+        }]
+    },
+    bytes: [[
+        0x30, 0x33, 0x30, 0x34, 0x36, 0x39, 0x32, 0x30, 
+        0x30, 0x32, 0x1D, 0x37, 0x35, 0x39
+    ]]
+}
+```
 <br>
 
 -----
