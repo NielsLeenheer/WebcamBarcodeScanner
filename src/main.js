@@ -402,7 +402,7 @@ class WebcamBarcodeScanner {
 							case 'Code39': symbology = 'code39'; break;
 							case 'Code93': symbology = 'code93'; break;
 							case 'Code128': symbology = 'code128'; break;
-							case 'DataBar': symbology = 'gs1-databar'; break;
+							case 'DataBar': symbology = 'gs1-databar-omni'; break;
 							case 'DataBarExpanded': symbology = 'gs1-databar-expanded'; break;
 							case 'DataMatrix': symbology = 'data-matrix'; break;
 							case 'EAN-8':   symbology = 'ean8'; break;
@@ -1034,9 +1034,9 @@ class WebcamBarcodeScanner {
 		setInterval(() => {
 			if (this.#stats.scans > 0) {
 				if (this.#options.debug) {
-				console.log(
+					console.log(
 						`Scanned ${this.#stats.scans} barcodes in ${Date.now() - this.#stats.time}ms (average ${this.#stats.scans / (Date.now() - this.#stats.time) * 1000} scans/s`
-				)
+					)
 				}
 
 				this.#stats.time = Date.now();
