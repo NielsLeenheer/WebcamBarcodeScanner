@@ -13,6 +13,7 @@ const TIME_BETWEEN_SCANS = 2 * 1000;
 const WAIT_FOR_CAMERA = 2000;
 
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 class WebcamBarcodeScanner {
 	
@@ -499,7 +500,7 @@ class WebcamBarcodeScanner {
 		this.#internal.width = width;
 		this.#internal.height = height;
 
-		if (IS_IOS) {
+		if (IS_IPHONE) {
 			if (this.#internal.orientation === 'normal') {
 				this.#internal.width = Math.min(width, height);
 				this.#internal.height = Math.max(width, height);
