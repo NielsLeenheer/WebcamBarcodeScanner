@@ -500,8 +500,21 @@ class WebcamBarcodeScanner {
 		this.#internal.width = width;
 		this.#internal.height = height;
 
-		if (IS_IPHONE) {
-			if (this.#internal.orientation === 'normal') {
+		if (IS_IOS) {
+            let orientation = 'landscape';
+
+            /* 
+              For iPhones the default orientation is portrait and for iPads the default orientation is landscape, 
+            */
+
+            if (IS_IPHONE) {
+                orientation = this.#internal.orientation === 'normal' ? 'portrait' : 'landscape';
+            }
+            else {
+                orientation = this.#internal.orientation === 'normal' ? 'landscape' : 'portrait';
+            }
+
+            if (orientation === 'portrait') {
 				this.#internal.width = Math.min(width, height);
 				this.#internal.height = Math.max(width, height);
 			}
