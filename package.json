@@ -1,6 +1,6 @@
 {
   "name": "@point-of-sale/webcam-barcode-scanner",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "type": "module",
   "exports": {
     "browser": {
@@ -47,7 +47,7 @@
     "@interactjs/dev-tools": "^1.10.27",
     "@interactjs/interact": "^1.10.27",
     "@interactjs/modifiers": "^1.10.27",
-    "@point-of-sale/barcode-parser": "^1.0.2",
+    "@point-of-sale/barcode-parser": "^1.0.3",
     "@surma/rollup-plugin-off-main-thread": "^2.2.3",
     "comlink": "^4.4.1",
     "interactjs": "^1.10.27",
