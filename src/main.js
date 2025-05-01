@@ -50,13 +50,19 @@ class WebcamBarcodeScanner {
 			enabled: 		true,
 			draggable:		false,
 			mirrored: 		true,
-			hud: 			true,
+			hud: 			{},
 			size: 			240,
 			position: 		'bottom-right',
 			padding: 		20,
 			radius: 		6,
 			zIndex: 		1000
 		}, this.#options.preview);
+
+		this.#options.preview.hud = Object.assign({
+			enabled:		true,
+			guide:			true,
+			outline:		true,
+		}, this.#options.preview.hud);
 
 		this.#internal = {
 			devices:		[],
@@ -763,7 +769,7 @@ class WebcamBarcodeScanner {
 
 		/* Create head up display */
 
-		if (this.#options.preview.hud) {
+		if (this.#options.preview.hud.enabled) {
 			let hud = document.createElement('canvas');
 			hud.width = this.#internal.width;
 			hud.height = this.#internal.height;
@@ -828,7 +834,7 @@ class WebcamBarcodeScanner {
 
 		/* Start drawing the hud */
 
-		if (this.#options.preview.hud) {
+		if (this.#options.preview.hud.enabled) {
 			this.#drawHud();
 		}
 	}
@@ -913,36 +919,66 @@ class WebcamBarcodeScanner {
 
 		/* Draw the left over polygons */
 
-		let polygons = this.#preview.polygons.values();
-
 		let width = this.#preview.hud.canvas.width;
 		let height = this.#preview.hud.canvas.height;
 
 		this.#preview.hud.clearRect(0, 0, width, height);
 
-		if (!this.#state.changing) {
-			this.#preview.hud.strokeStyle = 'lime';
-			this.#preview.hud.lineWidth = 8;
+		if (this.#options.preview.hud.guide && !this.#preview.polygons.size) {
+			let s = 60;
+			let x = width / 2;
+			let y = height / 2;
+			let w = width * 0.3;
 
-			for (let { polygon } of polygons) {		
-				this.#preview.hud.beginPath();
+			this.#preview.hud.strokeStyle = 'rgba(255, 0, 0, 0.3)';
 
-				if (this.#state.mirrored) {
-					this.#preview.hud.moveTo(width - polygon[0].x, polygon[0].y);
-					for (let i = 1; i < polygon.length; i++) {
-						this.#preview.hud.lineTo(width - polygon[i].x, polygon[i].y);
+			this.#preview.hud.beginPath();
+			this.#preview.hud.lineWidth = 12;
+			this.#preview.hud.moveTo(x - w - 6, y - s);
+			this.#preview.hud.lineTo(x - w - 6, y + s);
+			this.#preview.hud.moveTo(x + w + 6, y - s);
+			this.#preview.hud.lineTo(x + w + 6, y + s);
+			this.#preview.hud.stroke();
+
+			this.#preview.hud.beginPath();
+			this.#preview.hud.lineWidth = 36;
+			this.#preview.hud.moveTo(x - w, y);
+			this.#preview.hud.lineTo(x + w, y);
+			this.#preview.hud.stroke();
+		}
+
+		if (this.#options.preview.hud.outline) {
+			let polygons = this.#preview.polygons.values();
+
+			if (!this.#state.changing) {
+				this.#preview.hud.strokeStyle = 'lime';
+				this.#preview.hud.lineWidth = 8;
+
+				let zoom = this.#options.preview.zoom;
+
+				let x = (width / 2) - (width * zoom / 2)
+				let y = (height / 2) - (height * zoom / 2)
+
+				for (let { polygon } of polygons) {		
+					this.#preview.hud.beginPath();
+
+					if (this.#state.mirrored) {
+						this.#preview.hud.moveTo(x + ((width - polygon[0].x) * zoom), y + (polygon[0].y * zoom));
+						for (let i = 1; i < polygon.length; i++) {
+							this.#preview.hud.lineTo(x + ((width - polygon[i].x) * zoom), y + (polygon[i].y * zoom));
+						}
+						this.#preview.hud.lineTo(x + ((width - polygon[0].x) * zoom), y + (polygon[0].y * zoom));
+					} else {
+						this.#preview.hud.moveTo(x + polygon[0].x * zoom, y + (polygon[0].y * zoom));
+						for (let i = 1; i < polygon.length; i++) {
+							this.#preview.hud.lineTo(x + polygon[i].x * zoom, y + (polygon[i].y * zoom));
+						}
+						this.#preview.hud.lineTo(x + polygon[0].x * zoom, y + (polygon[0].y * zoom));
 					}
-					this.#preview.hud.lineTo(width - polygon[0].x, polygon[0].y);
-				} else {
-					this.#preview.hud.moveTo(polygon[0].x, polygon[0].y);
-					for (let i = 1; i < polygon.length; i++) {
-						this.#preview.hud.lineTo(polygon[i].x, polygon[i].y);
-					}
-					this.#preview.hud.lineTo(polygon[0].x, polygon[0].y);
+
+					this.#preview.hud.closePath();
+					this.#preview.hud.stroke();
 				}
-
-				this.#preview.hud.closePath();
-				this.#preview.hud.stroke();
 			}
 		}
 
@@ -1094,7 +1130,7 @@ class WebcamBarcodeScanner {
 
 		/* Draw the location of the barcode */
 
-		if (this.#options.preview.enabled && this.#options.preview.hud && barcode.polygon) {
+		if (this.#options.preview.enabled && this.#options.preview.hud.enabled && barcode.polygon) {
 			this.#preview.polygons.set(barcode.value, {
 				timestamp: Date.now(),
 				polygon: barcode.polygon,
