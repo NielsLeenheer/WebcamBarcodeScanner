@@ -51,6 +51,7 @@ class WebcamBarcodeScanner {
 			draggable:		false,
 			mirrored: 		true,
 			hud: 			{},
+			zoom:			2.5,
 			size: 			240,
 			position: 		'bottom-right',
 			padding: 		20,
@@ -999,9 +1000,14 @@ class WebcamBarcodeScanner {
 		preview.style.zIndex = 1;
 		preview.style.display = 'none';
 
+		let scaleX = this.#options.preview.zoom;
+		let scaleY = this.#options.preview.zoom;
+
 		if (this.#state.mirrored && this.#options.preview.mirrored) {
-			preview.style.transform = 'scaleX(-1)';
+			scaleX = -scaleX;
 		}
+
+		preview.style.transform = `scaleX(${scaleX}) scaleY(${scaleY})`;
 
 		preview.addEventListener('loadedmetadata', () => {
             preview.play();
@@ -1031,9 +1037,14 @@ class WebcamBarcodeScanner {
 		canvas.width = preview.width * window.devicePixelRatio;
 		canvas.height = preview.height * window.devicePixelRatio;
 
+		let scaleX = this.#options.preview.zoom;
+		let scaleY = this.#options.preview.zoom;
+
 		if (this.#state.mirrored && this.#options.preview.mirrored) {
-			canvas.style.transform = 'scaleX(-1)';
+			scaleX = -scaleX;
 		}
+
+		canvas.style.transform = `scaleX(${scaleX}) scaleY(${scaleY})`;
 
 		canvas.style.position = 'absolute';
 		canvas.style.width = `${preview.width}px`;
