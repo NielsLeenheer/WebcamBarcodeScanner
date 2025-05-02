@@ -49,6 +49,7 @@ class WebcamBarcodeScanner {
 			enabled: 		true,
 			draggable:		false,
 			mirrored: 		true,
+			menu:			{},
 			hud: 			{},
 			zoom:			2.5,
 			size: 			240,
@@ -57,6 +58,10 @@ class WebcamBarcodeScanner {
 			radius: 		6,
 			zIndex: 		1000
 		}, this.#options.preview);
+
+		this.#options.preview.menu = Object.assign({
+			enabled:		true,
+		}, this.#options.preview.menu);
 
 		this.#options.preview.hud = Object.assign({
 			enabled:		true,
@@ -785,47 +790,50 @@ class WebcamBarcodeScanner {
 
 		/* Create a menu to switch between cameras */
 
-		let menu = document.createElement('select');
-		menu.style.position = 'absolute';
-		menu.style.zIndex = 102;
-		menu.style.width = '30px';
-		menu.style.height = '30px';
-		menu.style.opacity = 0;
-		menu.style.cursor = 'pointer';
-		menu.style.appearance = 'none';
+		if (this.#options.preview.menu.enabled) {
+			let menu = document.createElement('select');
+			menu.style.position = 'absolute';
+			menu.style.zIndex = 102;
+			menu.style.width = '30px';
+			menu.style.height = '30px';
+			menu.style.opacity = 0;
+			menu.style.cursor = 'pointer';
+			menu.style.appearance = 'none';
 
-		for(let device of this.#internal.devices) {
-			let option = document.createElement('option');
-			option.value = device.deviceId;
-			option.text = device.label;
-			menu.appendChild(option);
+			for(let device of this.#internal.devices) {
+				let option = document.createElement('option');
+				option.value = device.deviceId;
+				option.text = device.label;
+				menu.appendChild(option);
+			}
+
+			menu.addEventListener('change', () => {
+				this.#change(menu.value);
+			});
+
+			container.appendChild(menu);
+
+
+			/* Create icon to indicate that the preview is clickable */
+
+			let icon = document.createElement('div');
+			icon.style.position = 'absolute';
+			icon.style.zIndex = 101;
+			icon.style.top = '5px';
+			icon.style.left = '5px';
+			icon.style.width = '20px';
+			icon.style.height = '20px';
+			icon.style.fontSize = '14px';
+			icon.style.display = 'flex';
+			icon.style.justifyContent = 'center';
+			icon.style.alignItems = 'center';
+			icon.style.backgroundColor = '#666666aa';
+			icon.style.color = 'white';
+			icon.style.borderRadius = '50%';
+			icon.style.pointerEvents = 'none';
+			icon.textContent = '▾';
+			container.appendChild(icon);
 		}
-
-		menu.addEventListener('change', () => {
-			this.#change(menu.value);
-		});
-
-		container.appendChild(menu);
-
-		/* Create icon to indicate that the preview is clickable */
-
-		let icon = document.createElement('div');
-		icon.style.position = 'absolute';
-		icon.style.zIndex = 101;
-		icon.style.top = '5px';
-		icon.style.left = '5px';
-		icon.style.width = '20px';
-		icon.style.height = '20px';
-		icon.style.fontSize = '14px';
-		icon.style.display = 'flex';
-		icon.style.justifyContent = 'center';
-		icon.style.alignItems = 'center';
-		icon.style.backgroundColor = '#666666aa';
-		icon.style.color = 'white';
-		icon.style.borderRadius = '50%';
-		icon.style.pointerEvents = 'none';
-		icon.textContent = '▾';
-		container.appendChild(icon);
 
 		/* Append the container to the body */
 
