@@ -14,7 +14,6 @@ const WAIT_FOR_CAMERA = 2000;
 
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent); 
-const IS_IPAD = IS_IOS && !IS_IPHONE;
 
 class WebcamBarcodeScanner {
 	
