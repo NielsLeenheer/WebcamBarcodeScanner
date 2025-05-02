@@ -230,7 +230,11 @@ class WebcamBarcodeScanner {
         }
     }
     
-    async disconnect() {
+	async change(deviceId) {
+		this.#change(deviceId)
+	}
+
+	async disconnect() {
         this.#close();
     }
 
@@ -238,7 +242,9 @@ class WebcamBarcodeScanner {
 		this.#internal.emitter.on(n, f);
 	}
 
-
+	get devices() {
+		return this.#internal.devices;
+	}
 
 
 	/* Private methods */
@@ -626,6 +632,11 @@ class WebcamBarcodeScanner {
 					track.stop();
 				}
 			}
+
+			this.#internal.emitter.emit('connected', {
+				type:       'webcam',
+				deviceId:   deviceId
+			});
 		}
 	}
 
