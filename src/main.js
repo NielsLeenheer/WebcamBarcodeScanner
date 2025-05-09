@@ -633,7 +633,7 @@ class WebcamBarcodeScanner {
 				}
 			}
 
-			this.#internal.emitter.emit('connected', {
+			this.#internal.emitter.emit('changed', {
 				type:       'webcam',
 				deviceId:   deviceId
 			});
