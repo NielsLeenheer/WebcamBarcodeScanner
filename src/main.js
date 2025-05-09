@@ -157,7 +157,14 @@ class WebcamBarcodeScanner {
             }
         }
 
-        let stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
+		let stream;
+
+		try {
+        	stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
+		}
+		catch (e) {
+
+		}
 
         if (stream) {
 			let location = 'front';
@@ -183,6 +190,8 @@ class WebcamBarcodeScanner {
 			await this.#enumerate();
 
             this.#open(stream, previousDevice.deviceId);
+
+			return previousDevice.deviceId;
         }
     }
 
@@ -195,7 +204,13 @@ class WebcamBarcodeScanner {
 
 		/* Initialize the webcam to get the video stream */
 
-		let stream = await navigator.mediaDevices.getUserMedia({ video: this.#options.resolution });
+		let stream;
+
+		try {
+			stream = await navigator.mediaDevices.getUserMedia({ video: this.#options.resolution });
+		}
+		catch (e) {
+		}
 
         if (stream) {
 			let deviceId = null;
@@ -227,11 +242,13 @@ class WebcamBarcodeScanner {
 			await this.#enumerate();
 
 			this.#open(stream, deviceId);
+
+			return deviceId;
         }
     }
     
 	async change(deviceId) {
-		this.#change(deviceId)
+		return await this.#change(deviceId)
 	}
 
 	async disconnect() {
@@ -604,7 +621,13 @@ class WebcamBarcodeScanner {
 			deviceId:	deviceId
 		}
 
-		let stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
+		let stream;
+		
+		try {
+			stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
+		}
+		catch (e) {
+		}
 
 		if (stream) {
 			this.#internal.stream = stream;
@@ -637,6 +660,8 @@ class WebcamBarcodeScanner {
 				type:       'webcam',
 				deviceId:   deviceId
 			});
+
+			return deviceId;
 		}
 	}
 
