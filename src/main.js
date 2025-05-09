@@ -608,6 +608,10 @@ class WebcamBarcodeScanner {
 			previousPreview.style.zIndex = 2;
 		}
 
+		if (this.#options.preview.enabled) {
+			this.#preview.container.classList.add('changing');
+		}
+
 		/* Switch state */
 
 		this.#state.playing = false;
@@ -649,6 +653,8 @@ class WebcamBarcodeScanner {
 				/* Remove the previous preview */
 				await this.#destroyPreview(previousPreview);
 
+				this.#preview.container.classList.remove('changing');
+
 				/* Now that the preview is no longer using it, we can stop the previous stream */
 				let tracks = previousStream.getTracks();
 				for (let track of tracks) {
@@ -662,6 +668,10 @@ class WebcamBarcodeScanner {
 			});
 
 			return deviceId;
+		}
+
+		if (this.#options.preview.enabled) {
+			this.#preview.container.classList.remove('changing');
 		}
 	}
 
@@ -1077,6 +1087,7 @@ class WebcamBarcodeScanner {
 		/* Create a canvas on the exact same spot as the preview video */
 
 		let canvas = document.createElement('canvas');
+		canvas.classList.add('snapshot');
 		canvas.width = preview.width * window.devicePixelRatio;
 		canvas.height = preview.height * window.devicePixelRatio;
 
